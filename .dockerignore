@@ -1,0 +1,29 @@
+# Docker ignore patterns
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+.idea/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+.vscode/
+*.log
+*.tmp
+*.temp
+.git/
+.gitignore
+README.md
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Test outputs
+test-results/
+reports/
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
