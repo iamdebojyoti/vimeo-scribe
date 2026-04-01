@@ -7,11 +7,11 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(SnakeCaseStrategy::class)
 data class VimeoApiVideoData(
-    val data: List<VimeoData>
+    val data: List<VimeoData>,
 ) {
     @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonNaming(SnakeCaseStrategy::class)
     data class VimeoData(
-        val sourceLink: String
+        val sourceLink: String,
     )
 }

@@ -1,15 +1,16 @@
 package io.content.presentation.route
 
-import io.content.presentation.dto.VideoSummaryRequest
-import io.content.presentation.dto.VideoSummaryResponse
 import io.content.domain.usecase.SummarizeVideoUseCase
 import io.content.infra.extractor.VimeoIdExtractor
 import io.content.presentation.dto.MultipleVideoSummaryRequest
+import io.content.presentation.dto.VideoSummaryRequest
+import io.content.presentation.dto.VideoSummaryResponse
 import io.ktor.http.HttpStatusCode.Companion.InternalServerError
 import io.ktor.http.HttpStatusCode.Companion.OK
-import io.ktor.server.request.*
+import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.routing.*
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.post
 import org.koin.ktor.ext.inject
 
 fun Route.videoGenerateRoute() {

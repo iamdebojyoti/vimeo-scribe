@@ -1,10 +1,10 @@
 package io.content.infra.adapter
 
 import io.content.domain.port.TranscriptPort
+import io.content.infra.http.AppHttpClient
 import io.content.infra.model.VimeoAuthorizeBody
 import io.content.infra.response.VimeoApiVideoData
 import io.content.infra.response.VimeoAuthResponse
-import io.content.infra.http.AppHttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.basicAuth
 import io.ktor.client.request.get
@@ -15,10 +15,10 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
 class VimeoTranscriptAdapter(val vimeoUsername: String, val vimeoPassword: String) : TranscriptPort {
-
-    override suspend fun fetchTranscript(videoId: String): String = readData(videoId).let {
-        AppHttpClient.client.get(it.data[0].sourceLink).body()
-    }
+    override suspend fun fetchTranscript(videoId: String): String =
+        readData(videoId).let {
+            AppHttpClient.client.get(it.data[0].sourceLink).body()
+        }
 
     private suspend fun authorize(): VimeoAuthResponse {
         return AppHttpClient.client.post(VIMEO_AUTHORIZE_URL) {

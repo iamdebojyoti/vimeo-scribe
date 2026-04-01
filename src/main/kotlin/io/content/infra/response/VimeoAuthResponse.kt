@@ -7,5 +7,5 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy::class)
 data class VimeoAuthResponse(
-    val accessToken: String
+    val accessToken: String,
 )
