@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  format:
-    name: Format Code
+  format-api:
+    name: Format API Code
     runs-on: ubuntu-latest
     
     steps:
@@ -55,4 +55,57 @@ jobs:
         git config --local user.name "GitHub Action"
         git add -A
         git commit -m "Apply ktlint formatting"
+        git push
+
+  format-web:
+    name: Format Web Code
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: web/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./web
+      run: npm ci
+    
+    - name: Check if prettier is available
+      id: check-prettier
+      working-directory: ./web
+      run: |
+        if npx prettier --version >/dev/null 2>&1; then
+          echo "prettier=true" >> $GITHUB_OUTPUT
+        else
+          echo "prettier=false" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Run prettier format (if available)
+      if: steps.check-prettier.outputs.prettier == 'true'
+      working-directory: ./web
+      run: npx prettier --write .
+    
+    - name: Check for changes
+      id: verify-changed-files
+      run: |
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "changed=true" >> $GITHUB_OUTPUT
+        else
+          echo "changed=false" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Commit and push changes
+      if: steps.verify-changed-files.outputs.changed == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add -A
+        git commit -m "Apply web code formatting"
         git push

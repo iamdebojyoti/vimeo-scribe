@@ -5,3 +5,6 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
+
+include("api")
+include("web")

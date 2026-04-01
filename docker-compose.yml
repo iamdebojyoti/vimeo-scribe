@@ -1,18 +1,34 @@
 version: '3.8'
 
 services:
-  vimeo-scribe:
+  api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: api/Dockerfile
     ports:
       - "8080:8080"
     environment:
       - JAVA_OPTS=-Xmx512m -Xms256m
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - VIMEO_USERNAME=${VIMEO_USERNAME}
+      - VIMEO_PASSWORD=${VIMEO_PASSWORD}
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    networks:
+      - vimeo-scribe-network
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - VITE_BACKEND_URL=${VITE_BACKEND_URL:-http://localhost:8080}
+      - APP_URL=${APP_URL:-http://localhost:3000}
+    networks:
+      - vimeo-scribe-network
+
+networks:
+  vimeo-scribe-network:
+    driver: bridge

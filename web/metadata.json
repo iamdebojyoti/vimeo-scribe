@@ -1,0 +1,5 @@
+{
+  "name": "vimeo-scribe",
+  "description": "Transcribe and summarize Vimeo videos using AI.",
+  "requestFramePermissions": []
+}

@@ -1,69 +1,8 @@
-plugins {
-    alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.ktor)
-    alias(libs.plugins.kotlin.plugin.serialization)
-    alias(libs.plugins.ktlint)
-}
+allprojects {
+    group = "io.content"
+    version = "0.0.1"
 
-group = "io.content"
-version = "0.0.1"
-
-application {
-    mainClass = "io.ktor.server.netty.EngineMain"
-}
-
-kotlin {
-    jvmToolchain(21)
-}
-
-dependencies {
-    implementation(libs.ktor.server.call.logging)
-    implementation(libs.ktor.server.content.negotiation)
-    implementation(libs.ktor.serialization.jackson)
-    implementation(libs.ktor.server.core)
-    implementation(libs.ktor.serialization.kotlinx.json)
-    implementation(libs.ktor.server.host.common)
-    implementation(libs.ktor.server.status.pages)
-    implementation(libs.ktor.server.netty)
-    implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.cio)
-    implementation(libs.ktor.client.content.negotiation)
-    implementation(libs.google.gemini)
-    implementation(libs.logback.classic)
-    implementation(libs.koin.insert)
-    implementation(libs.ktor.server.config.yaml)
-    implementation(libs.commons.codec)
-    testImplementation(libs.ktor.server.test.host)
-    testImplementation(libs.kotlin.test.junit)
-    testImplementation(libs.mockk)
-    testImplementation(libs.junit.jupiter)
-    testImplementation(libs.junit.jupiter.engine)
-    testImplementation(libs.junit.platform.launcher)
-}
-
-tasks.test {
-    useJUnitPlatform()
-    testLogging {
-        events("passed", "skipped", "failed")
-        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    repositories {
+        mavenCentral()
     }
-}
-
-// Configure ktlint
-ktlint {
-    android.set(false)
-    ignoreFailures.set(false)
-    reporters {
-        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.PLAIN)
-        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.CHECKSTYLE)
-    }
-    filter {
-        exclude("**/generated/**")
-        include("**/kotlin/**")
-    }
-}
-
-// Make ktlint check part of the build lifecycle
-tasks.check {
-    dependsOn(tasks.named("ktlintCheck"))
 }

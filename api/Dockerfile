@@ -1,5 +1,5 @@
 # Use multi-stage build for better image size and security
-FROM openjdk:21-jdk-slim AS build
+FROM eclipse-temurin:21-jdk AS build
 
 # Install gradle and necessary tools
 RUN apt-get update && \
@@ -10,7 +10,9 @@ RUN apt-get update && \
 WORKDIR /app
 
 # Copy gradle wrapper files first to leverage Docker layer caching
-COPY gradlew gradlew.bat gradle/ gradle/
+COPY gradlew ./
+COPY gradlew.bat ./
+COPY gradle/ ./gradle/
 
 # Make gradlew executable
 RUN chmod +x gradlew
@@ -22,10 +24,10 @@ RUN ./gradlew --no-daemon --version
 COPY . .
 
 # Build the application
-RUN ./gradlew --no-daemon clean build -x test
+RUN ./gradlew --no-daemon :api:clean :api:build -x test
 
 # Runtime stage
-FROM openjdk:21-jre-slim
+FROM eclipse-temurin:21-jre
 
 # Install curl for health checks
 RUN apt-get update && \
@@ -39,7 +41,7 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 WORKDIR /app
 
 # Copy the built jar from build stage
-COPY --from=build /app/build/libs/*.jar app.jar
+COPY --from=build /app/api/build/libs/*.jar app.jar
 
 # Change ownership to app user
 RUN chown -R appuser:appuser /app
