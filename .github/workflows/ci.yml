@@ -87,13 +87,37 @@ jobs:
     - name: Run API tests
       run: ./gradlew :api:test
     
-    - name: Generate test report
-      uses: dorny/test-reporter@v1
+    - name: Parse Test Results
+      id: test-results
       if: success() || failure()
-      with:
-        name: API Test Results
-        path: '**/build/test-results/test/TEST-*.xml'
-        reporter: java-junit
+      run: |
+        echo "::group::Parsing test results"
+        find . -name "TEST-*.xml" -exec echo "Found test file: {}" \;
+        
+        total_tests=$(find . -name "TEST-*.xml" -exec grep -o 'tests="[0-9]*"' {} \; | grep -o '[0-9]*' | awk '{sum+=$1} END {print sum}')
+        failures=$(find . -name "TEST-*.xml" -exec grep -o 'failures="[0-9]*"' {} \; | grep -o '[0-9]*' | awk '{sum+=$1} END {print sum}')
+        errors=$(find . -name "TEST-*.xml" -exec grep -o 'errors="[0-9]*"' {} \; | grep -o '[0-9]*' | awk '{sum+=$1} END {print sum}')
+        
+        echo "total-tests=$total_tests" >> $GITHUB_OUTPUT
+        echo "failures=$failures" >> $GITHUB_OUTPUT
+        echo "errors=$errors" >> $GITHUB_OUTPUT
+        
+        echo "::endgroup::"
+    
+    - name: Test Summary
+      if: success() || failure()
+      run: |
+        echo "## 🧪 API Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "- **Total Tests**: ${{ steps.test-results.outputs.total-tests }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Failures**: ${{ steps.test-results.outputs.failures }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Errors**: ${{ steps.test-results.outputs.errors }}" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ steps.test-results.outputs.failures }}" -gt 0 ] || [ "${{ steps.test-results.outputs.errors }}" -gt 0 ]; then
+          echo "❌ Some tests failed" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        else
+          echo "✅ All tests passed" >> $GITHUB_STEP_SUMMARY
+        fi
 
   test-web:
     name: Test Web
@@ -156,13 +180,15 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
         cache: 'npm'
-        cache-dependency-path: web/package-lock.json
+        cache-dependency-path: web/package.json
     
-    - name: Install dependencies
+    - name: Clean and install dependencies
       working-directory: ./web
-      run: npm ci
+      run: |
+        rm -rf node_modules dist package-lock.json
+        npm install
     
     - name: Build web module
       working-directory: ./web
@@ -182,7 +208,8 @@ jobs:
     - name: Build API Docker image
       uses: docker/build-push-action@v5
       with:
-        context: ./api
+        context: .
+        file: ./api/Dockerfile
         push: false
         tags: vimeo-scribe-api:latest
     

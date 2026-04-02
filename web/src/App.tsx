@@ -2,13 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
   Video, 
-  FileText, 
-  Settings, 
-  Loader2, 
-  CheckCircle2, 
+  FileText,
+  Loader2,
   AlertCircle, 
-  Copy, 
-  ExternalLink,
+  Copy,
   ChevronRight,
   BrainCircuit,
   Sparkles,
@@ -171,7 +168,7 @@ export default function App() {
         model: selectedModel,
         prompt: summarizePrompt
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Processing error:', err);
       setError(err.response?.data?.message || 'Failed to process videos. Please check the URLs and your API keys.');
     } finally {
