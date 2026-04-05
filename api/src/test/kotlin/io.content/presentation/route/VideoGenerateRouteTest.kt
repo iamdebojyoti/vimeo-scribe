@@ -6,7 +6,8 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import io.content.domain.usecase.SummarizeVideoUseCase
 import io.content.infra.extractor.VimeoIdExtractor
-import io.content.presentation.dto.MultipleVideoSummaryRequest
+import io.content.presentation.dto.AIDetails
+import io.content.presentation.dto.AIProvider
 import io.content.presentation.dto.VideoSummaryRequest
 import io.content.presentation.dto.VideoSummaryResponse
 import io.ktor.client.HttpClient
@@ -22,7 +23,6 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkAll
@@ -37,6 +37,21 @@ import kotlin.test.assertEquals
 
 class VideoGenerateRouteTest {
     private val summarizeVideoUseCase: SummarizeVideoUseCase = mockk()
+
+    companion object {
+        private val testAIDetails =
+            AIDetails(
+                provider = AIProvider.GEMINI,
+                apiKey = "test-api-key",
+                additionalData = mapOf("model" to "gemini-pro", "temperature" to "0.5"),
+            )
+
+        private val minimalAIDetails =
+            AIDetails(
+                provider = AIProvider.GEMINI,
+                apiKey = "minimal-key",
+            )
+    }
 
     @BeforeEach
     fun setUp() {
@@ -86,168 +101,85 @@ class VideoGenerateRouteTest {
         }
 
     @Test
-    fun `summarize - returns 200 with summary on success`() =
-        withVideoRouteApp { client ->
-            val rawVideoId = "https://vimeo.com/123456789"
-            val vimeoId = "123456789"
-            val prompt = "Summarise in 3 bullets"
-            val summary = "• Point 1\n• Point 2\n• Point 3"
-
-            every { VimeoIdExtractor.extractId(rawVideoId) } returns vimeoId
-            coEvery { summarizeVideoUseCase.execute(vimeoId, prompt) } returns summary
-
-            val response =
-                client.post("/v1/summarize") {
-                    contentType(ContentType.Application.Json)
-                    setBody(VideoSummaryRequest(videoId = rawVideoId, summarizePrompt = prompt))
-                }
-
-            assertEquals(HttpStatusCode.OK, response.status)
-            val body = response.body<VideoSummaryResponse>()
-            assertEquals(summary, body.summary)
-
-            coVerify(exactly = 1) { VimeoIdExtractor.extractId(rawVideoId) }
-            coVerify(exactly = 1) { summarizeVideoUseCase.execute(vimeoId, prompt) }
-        }
-
-    @Test
-    fun `summarize - returns 200 with null summary when use case returns null`() =
-        withVideoRouteApp { client ->
-            val rawVideoId = "https://vimeo.com/999"
-            val vimeoId = "999"
-
-            every { VimeoIdExtractor.extractId(rawVideoId) } returns vimeoId
-            coEvery { summarizeVideoUseCase.execute(vimeoId, null) } returns null
-
-            val response =
-                client.post("/v1/summarize") {
-                    contentType(ContentType.Application.Json)
-                    setBody(VideoSummaryRequest(videoId = rawVideoId))
-                }
-
-            assertEquals(HttpStatusCode.OK, response.status)
-            val body = response.body<VideoSummaryResponse>()
-            assertEquals(null, body.summary)
-        }
-
-    @Test
-    fun `summarize - sends null prompt to use case when prompt is omitted`() =
-        withVideoRouteApp { client ->
-            val rawVideoId = "https://vimeo.com/111"
-            val vimeoId = "111"
-
-            every { VimeoIdExtractor.extractId(rawVideoId) } returns vimeoId
-            coEvery { summarizeVideoUseCase.execute(vimeoId, null) } returns "Summary"
-
-            client.post("/v1/summarize") {
-                contentType(ContentType.Application.Json)
-                setBody(VideoSummaryRequest(videoId = rawVideoId))
-            }
-
-            coVerify(exactly = 1) { summarizeVideoUseCase.execute(vimeoId, null) }
-        }
-
-    @Test
-    fun `summarize - returns 500 when VimeoIdExtractor throws`() =
-        withVideoRouteApp { client ->
-            val rawVideoId = "not-a-vimeo-url"
-
-            every { VimeoIdExtractor.extractId(rawVideoId) } throws IllegalArgumentException("Invalid Vimeo URL")
-
-            val response =
-                client.post("/v1/summarize") {
-                    contentType(ContentType.Application.Json)
-                    setBody(VideoSummaryRequest(videoId = rawVideoId))
-                }
-
-            assertEquals(HttpStatusCode.InternalServerError, response.status)
-            assertContains(response.bodyAsText(), "Invalid Vimeo URL")
-            coVerify(exactly = 0) { summarizeVideoUseCase.execute(any(), any()) }
-        }
-
-    @Test
-    fun `summarize - returns 500 when use case throws`() =
-        withVideoRouteApp { client ->
-            val rawVideoId = "https://vimeo.com/222"
-            val vimeoId = "222"
-
-            every { VimeoIdExtractor.extractId(rawVideoId) } returns vimeoId
-            coEvery { summarizeVideoUseCase.execute(vimeoId, any()) } throws RuntimeException("AI service unavailable")
-
-            val response =
-                client.post("/v1/summarize") {
-                    contentType(ContentType.Application.Json)
-                    setBody(VideoSummaryRequest(videoId = rawVideoId))
-                }
-
-            assertEquals(HttpStatusCode.InternalServerError, response.status)
-            assertContains(response.bodyAsText(), "AI service unavailable")
-        }
-
-    @Test
-    fun `summarize multiple - returns 200 with combined summary on success`() =
+    fun `summarize multiple videos - returns 200 with combined summary on success`() =
         withVideoRouteApp { client ->
             val videoIds = listOf("vid-A", "vid-B", "vid-C")
             val prompt = "Give an overview"
             val summary = "Combined summary of all three videos"
+            val request =
+                VideoSummaryRequest(
+                    videoIds = videoIds,
+                    summarizePrompt = prompt,
+                    aiDetails = testAIDetails,
+                )
 
-            coEvery { summarizeVideoUseCase.executeMultiple(videoIds, prompt) } returns summary
+            coEvery { summarizeVideoUseCase.execute(videoIds, prompt, testAIDetails) } returns summary
 
             val response =
-                client.post("/v1/summarize/multiple") {
+                client.post("/v1/summarize") {
                     contentType(ContentType.Application.Json)
-                    setBody(MultipleVideoSummaryRequest(videoIds = videoIds, summarizePrompt = prompt))
+                    setBody(request)
                 }
 
             assertEquals(HttpStatusCode.OK, response.status)
             val body = response.body<VideoSummaryResponse>()
             assertEquals(summary, body.summary)
 
-            coVerify(exactly = 1) { summarizeVideoUseCase.executeMultiple(videoIds, prompt) }
+            coVerify(exactly = 1) { summarizeVideoUseCase.execute(videoIds, prompt, testAIDetails) }
             coVerify(exactly = 0) { VimeoIdExtractor.extractId(any()) }
         }
 
     @Test
-    fun `summarize multiple - passes null prompt when omitted`() =
+    fun `summarize videos with AI details - passes correct parameters to use case`() =
         withVideoRouteApp { client ->
             val videoIds = listOf("vid-X", "vid-Y")
+            val request =
+                VideoSummaryRequest(
+                    videoIds = videoIds,
+                    aiDetails = minimalAIDetails,
+                )
 
-            coEvery { summarizeVideoUseCase.executeMultiple(videoIds, null) } returns "Summary"
+            coEvery { summarizeVideoUseCase.execute(videoIds, null, minimalAIDetails) } returns "Summary"
 
-            client.post("/v1/summarize/multiple") {
+            client.post("/v1/summarize") {
                 contentType(ContentType.Application.Json)
-                setBody(MultipleVideoSummaryRequest(videoIds = videoIds))
+                setBody(request)
             }
 
-            coVerify(exactly = 1) { summarizeVideoUseCase.executeMultiple(videoIds, null) }
+            coVerify(exactly = 1) { summarizeVideoUseCase.execute(videoIds, null, minimalAIDetails) }
         }
 
     @Test
-    fun `summarize multiple - returns 200 with empty list`() =
+    fun `summarize empty video list - returns 200 with null summary`() =
         withVideoRouteApp { client ->
-            coEvery { summarizeVideoUseCase.executeMultiple(emptyList(), null) } returns null
+            coEvery { summarizeVideoUseCase.execute(emptyList(), null, null) } returns null
 
             val response =
-                client.post("/v1/summarize/multiple") {
+                client.post("/v1/summarize") {
                     contentType(ContentType.Application.Json)
-                    setBody(MultipleVideoSummaryRequest(videoIds = emptyList()))
+                    setBody(VideoSummaryRequest(videoIds = emptyList()))
                 }
 
             assertEquals(HttpStatusCode.OK, response.status)
         }
 
     @Test
-    fun `summarize multiple - returns 500 when use case throws`() =
+    fun `summarize with use case exception - returns 500 with error message`() =
         withVideoRouteApp { client ->
             val videoIds = listOf("vid-1", "vid-2")
+            val request =
+                VideoSummaryRequest(
+                    videoIds = videoIds,
+                    aiDetails = testAIDetails,
+                )
 
-            coEvery { summarizeVideoUseCase.executeMultiple(videoIds, any()) } throws
+            coEvery { summarizeVideoUseCase.execute(videoIds, null, testAIDetails) } throws
                 RuntimeException("Batch processing failed")
 
             val response =
-                client.post("/v1/summarize/multiple") {
+                client.post("/v1/summarize") {
                     contentType(ContentType.Application.Json)
-                    setBody(MultipleVideoSummaryRequest(videoIds = videoIds))
+                    setBody(request)
                 }
 
             assertEquals(HttpStatusCode.InternalServerError, response.status)
@@ -255,15 +187,21 @@ class VideoGenerateRouteTest {
         }
 
     @Test
-    fun `summarize multiple - error body contains error key`() =
+    fun `summarize with error response - error body contains error key`() =
         withVideoRouteApp { client ->
-            coEvery { summarizeVideoUseCase.executeMultiple(any(), any()) } throws
+            val request =
+                VideoSummaryRequest(
+                    videoIds = listOf("v1"),
+                    aiDetails = testAIDetails,
+                )
+
+            coEvery { summarizeVideoUseCase.execute(listOf("v1"), null, testAIDetails) } throws
                 RuntimeException("Something went wrong")
 
             val response =
-                client.post("/v1/summarize/multiple") {
+                client.post("/v1/summarize") {
                     contentType(ContentType.Application.Json)
-                    setBody(MultipleVideoSummaryRequest(videoIds = listOf("v1")))
+                    setBody(request)
                 }
 
             val bodyText = response.bodyAsText()

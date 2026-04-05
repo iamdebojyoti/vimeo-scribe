@@ -3,6 +3,8 @@ package io.content.domain.usecase
 import io.content.domain.port.SummaryPort
 import io.content.domain.port.TranscriptPort
 import io.content.infra.extractor.VimeoIdExtractor
+import io.content.presentation.dto.AIDetails
+import io.content.presentation.dto.AIProvider
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -24,6 +26,19 @@ class SummarizeVideoUseCaseTest {
     companion object {
         private const val RESOURCES_PATH = "src/test/resources"
 
+        private val geminiAIDetails =
+            AIDetails(
+                provider = AIProvider.GEMINI,
+                apiKey = "test-gemini-api-key",
+                additionalData = mapOf("model" to "gemini-pro", "temperature" to "0.7"),
+            )
+
+        private val geminiAIDetailsMinimal =
+            AIDetails(
+                provider = AIProvider.GEMINI,
+                apiKey = "test-gemini-key-minimal",
+            )
+
         private fun loadTranscript(filename: String): String {
             return File("$RESOURCES_PATH/$filename").readText()
         }
@@ -33,7 +48,8 @@ class SummarizeVideoUseCaseTest {
     fun setUp() {
         transcriptPort = mockk()
         summaryPort = mockk()
-        summarizeVideoUseCase = SummarizeVideoUseCase(transcriptPort, summaryPort)
+        every { summaryPort.providerName() } returns AIProvider.GEMINI
+        summarizeVideoUseCase = SummarizeVideoUseCase(transcriptPort, listOf(summaryPort))
         mockkObject(VimeoIdExtractor)
     }
 
@@ -43,87 +59,7 @@ class SummarizeVideoUseCaseTest {
     }
 
     @Test
-    fun `execute should return summary when transcript and summary generation succeed`() =
-        runTest {
-            // Given
-            val videoId = "123456"
-            val prompt = "Custom prompt"
-            val transcript = loadTranscript("transcripts/transcript-two-segments.txt")
-            val expectedSummary = "This is a summary"
-
-            coEvery { transcriptPort.fetchTranscript(videoId) } returns transcript
-            coEvery { summaryPort.generateSummary(prompt, transcript) } returns expectedSummary
-
-            // When
-            val result = summarizeVideoUseCase.execute(videoId, prompt)
-
-            // Then
-            assert(result == expectedSummary)
-            coVerify { transcriptPort.fetchTranscript(videoId) }
-            coVerify { summaryPort.generateSummary(prompt, transcript) }
-        }
-
-    @Test
-    fun `execute should use default prompt when prompt is null`() =
-        runTest {
-            // Given
-            val videoId = "123456"
-            val transcript = loadTranscript("transcripts/transcript-simple.txt")
-            val expectedSummary = "Default summary"
-
-            coEvery { transcriptPort.fetchTranscript(videoId) } returns transcript
-            coEvery { summaryPort.generateSummary("Summarize this video transcript", transcript) } returns expectedSummary
-
-            // When
-            val result = summarizeVideoUseCase.execute(videoId, null)
-
-            // Then
-            assert(result == expectedSummary)
-            coVerify { transcriptPort.fetchTranscript(videoId) }
-            coVerify { summaryPort.generateSummary("Summarize this video transcript", transcript) }
-        }
-
-    @Test
-    fun `execute should extract text from transcript correctly`() =
-        runTest {
-            // Given
-            val videoId = "123456"
-            val transcript = loadTranscript("transcripts/transcript-complex.txt")
-            val expectedSummary = "Processed transcript"
-
-            coEvery { transcriptPort.fetchTranscript(videoId) } returns transcript
-            coEvery { summaryPort.generateSummary(any(), transcript) } returns expectedSummary
-
-            // When
-            val result = summarizeVideoUseCase.execute(videoId, "test prompt")
-
-            // Then
-            assert(result == expectedSummary)
-            coVerify { transcriptPort.fetchTranscript(videoId) }
-            coVerify { summaryPort.generateSummary(any(), transcript) }
-        }
-
-    @Test
-    fun `execute should return null when summary generation returns null`() =
-        runTest {
-            // Given
-            val videoId = "123456"
-            val transcript = loadTranscript("transcripts/transcript-simple.txt")
-
-            coEvery { transcriptPort.fetchTranscript(videoId) } returns transcript
-            coEvery { summaryPort.generateSummary(any(), any()) } returns null
-
-            // When
-            val result = summarizeVideoUseCase.execute(videoId, null)
-
-            // Then
-            assert(result == null)
-            coVerify { transcriptPort.fetchTranscript(videoId) }
-            coVerify { summaryPort.generateSummary(any(), any()) }
-        }
-
-    @Test
-    fun `executeMultiple should process multiple video IDs correctly`() =
+    fun `executeMultiple should process multiple video IDs correctly with AI details`() =
         runTest {
             // Given
             val videoIds = listOf("123456", "https://vimeo.com/789012")
@@ -138,13 +74,14 @@ class SummarizeVideoUseCaseTest {
             coEvery { transcriptPort.fetchTranscript("789012") } returns transcript2
             coEvery {
                 summaryPort.generateSummary(
-                    "Custom prompt.Consider |||| as a separator between two transcripts",
+                    "Custom prompt.Consider |||| as a separator between two transcripts. Use markdown formatting",
                     "First video content |||| Second video content",
+                    geminiAIDetails,
                 )
             } returns expectedSummary
 
             // When
-            val result = summarizeVideoUseCase.executeMultiple(videoIds, prompt)
+            val result = summarizeVideoUseCase.execute(videoIds, prompt, geminiAIDetails)
 
             // Then
             assert(result == expectedSummary)
@@ -152,14 +89,15 @@ class SummarizeVideoUseCaseTest {
             coVerify { transcriptPort.fetchTranscript("789012") }
             coVerify {
                 summaryPort.generateSummary(
-                    "Custom prompt.Consider |||| as a separator between two transcripts",
+                    "Custom prompt.Consider |||| as a separator between two transcripts. Use markdown formatting",
                     "First video content |||| Second video content",
+                    geminiAIDetails,
                 )
             }
         }
 
     @Test
-    fun `executeMultiple should use default prompt when prompt is null`() =
+    fun `executeMultiple should use default prompt when prompt is null with AI details`() =
         runTest {
             // Given
             val videoIds = listOf("123456")
@@ -170,27 +108,29 @@ class SummarizeVideoUseCaseTest {
             coEvery { transcriptPort.fetchTranscript("123456") } returns transcript
             coEvery {
                 summaryPort.generateSummary(
-                    "Summarize this video transcript.Consider |||| as a separator between two transcripts",
+                    "Summarize this video transcript.Consider |||| as a separator between two transcripts. Use markdown formatting",
                     "Single video content",
+                    geminiAIDetailsMinimal,
                 )
             } returns expectedSummary
 
             // When
-            val result = summarizeVideoUseCase.executeMultiple(videoIds, null)
+            val result = summarizeVideoUseCase.execute(videoIds, null, geminiAIDetailsMinimal)
 
             // Then
             assert(result == expectedSummary)
             coVerify { transcriptPort.fetchTranscript("123456") }
             coVerify {
                 summaryPort.generateSummary(
-                    "Summarize this video transcript.Consider |||| as a separator between two transcripts",
+                    "Summarize this video transcript.Consider |||| as a separator between two transcripts. Use markdown formatting",
                     "Single video content",
+                    geminiAIDetailsMinimal,
                 )
             }
         }
 
     @Test
-    fun `executeMultiple should handle three videos correctly`() =
+    fun `executeMultiple should handle three videos correctly with AI details`() =
         runTest {
             // Given
             val videoIds = listOf("123456", "789012", "345678")
@@ -207,13 +147,14 @@ class SummarizeVideoUseCaseTest {
             coEvery { transcriptPort.fetchTranscript("345678") } returns transcript3
             coEvery {
                 summaryPort.generateSummary(
-                    any(),
+                    "test.Consider |||| as a separator between two transcripts. Use markdown formatting",
                     "Content one |||| Content two |||| Content three",
+                    geminiAIDetails,
                 )
             } returns expectedSummary
 
             // When
-            val result = summarizeVideoUseCase.executeMultiple(videoIds, "test")
+            val result = summarizeVideoUseCase.execute(videoIds, "test", geminiAIDetails)
 
             // Then
             assert(result == expectedSummary)
@@ -222,8 +163,9 @@ class SummarizeVideoUseCaseTest {
             coVerify { transcriptPort.fetchTranscript("345678") }
             coVerify {
                 summaryPort.generateSummary(
-                    any(),
+                    "test.Consider |||| as a separator between two transcripts. Use markdown formatting",
                     "Content one |||| Content two |||| Content three",
+                    geminiAIDetails,
                 )
             }
         }
@@ -240,7 +182,7 @@ class SummarizeVideoUseCaseTest {
             // When & Then
             val exception =
                 assertThrows<IllegalArgumentException> {
-                    summarizeVideoUseCase.executeMultiple(videoIds, null)
+                    summarizeVideoUseCase.execute(videoIds, null, null)
                 }
             assert(exception.message == errorMessage)
         }
@@ -254,19 +196,20 @@ class SummarizeVideoUseCaseTest {
 
             every { VimeoIdExtractor.extractId("123456") } returns "123456"
             coEvery { transcriptPort.fetchTranscript("123456") } returns transcript
-            coEvery { summaryPort.generateSummary(any(), any()) } returns null
+            coEvery { summaryPort.generateSummary(any(), any(), any()) } returns null
+            coEvery { summaryPort.generateSummary(any(), any(), null) } returns null
 
             // When
-            val result = summarizeVideoUseCase.executeMultiple(videoIds, null)
+            val result = summarizeVideoUseCase.execute(videoIds, null, null)
 
             // Then
             assert(result == null)
             coVerify { transcriptPort.fetchTranscript("123456") }
-            coVerify { summaryPort.generateSummary(any(), any()) }
+            coVerify { summaryPort.generateSummary(any(), any(), null) }
         }
 
     @Test
-    fun `extractTranscriptText should handle empty transcript`() =
+    fun `extractTranscriptText should handle empty transcript with AI details`() =
         runTest {
             // Given
             val videoId = "123456"
@@ -274,14 +217,14 @@ class SummarizeVideoUseCaseTest {
             val expectedSummary = "Empty summary"
 
             coEvery { transcriptPort.fetchTranscript(videoId) } returns transcript
-            coEvery { summaryPort.generateSummary(any(), "") } returns expectedSummary
+            coEvery { summaryPort.generateSummary(any(), "", geminiAIDetailsMinimal) } returns expectedSummary
 
             // When
-            val result = summarizeVideoUseCase.execute(videoId, null)
+            val result = summarizeVideoUseCase.execute(listOf(videoId), null, geminiAIDetailsMinimal)
 
             // Then
             assert(result == expectedSummary)
             coVerify { transcriptPort.fetchTranscript(videoId) }
-            coVerify { summaryPort.generateSummary(any(), "") }
+            coVerify { summaryPort.generateSummary(any(), "", geminiAIDetailsMinimal) }
         }
 }

@@ -1,8 +1,6 @@
 package io.content.presentation.route
 
 import io.content.domain.usecase.SummarizeVideoUseCase
-import io.content.infra.extractor.VimeoIdExtractor
-import io.content.presentation.dto.MultipleVideoSummaryRequest
 import io.content.presentation.dto.VideoSummaryRequest
 import io.content.presentation.dto.VideoSummaryResponse
 import io.ktor.http.HttpStatusCode.Companion.InternalServerError
@@ -19,19 +17,7 @@ fun Route.videoGenerateRoute() {
     post("/v1/summarize") {
         runCatching {
             val request = call.receive<VideoSummaryRequest>()
-            val vimeoId = VimeoIdExtractor.extractId(request.videoId)
-            val result = summarizeVideoUseCase.execute(vimeoId, request.summarizePrompt)
-
-            call.respond(OK, VideoSummaryResponse(result))
-        }.onFailure { err ->
-            call.respond(InternalServerError, mapOf("error" to err.message))
-        }
-    }
-
-    post("/v1/summarize/multiple") {
-        runCatching {
-            val request = call.receive<MultipleVideoSummaryRequest>()
-            val result = summarizeVideoUseCase.executeMultiple(request.videoIds, request.summarizePrompt)
+            val result = summarizeVideoUseCase.execute(request.videoIds, request.summarizePrompt, request.aiDetails)
 
             call.respond(OK, VideoSummaryResponse(result))
         }.onFailure { err ->

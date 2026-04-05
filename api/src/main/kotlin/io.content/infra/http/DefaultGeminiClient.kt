@@ -2,7 +2,7 @@ package io.content.infra.http
 
 import com.google.genai.Client
 
-object GeminiClient {
+object DefaultGeminiClient {
     private lateinit var client: Client
 
     fun init(apiKey: String) {
