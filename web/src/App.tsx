@@ -147,10 +147,10 @@ export default function App() {
     setResult(null);
 
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
       
       // Call the multiple summary endpoint
-      const response = await axios.post(`${backendUrl}/vimeo-scribe/v1/summarize/multiple`, {
+      const response = await axios.post(`${backendUrl}/vimeo-scribe/v1/summarize`, {
         videoIds: validUrls,
         summarizePrompt: summarizePrompt,
         model: selectedModel,

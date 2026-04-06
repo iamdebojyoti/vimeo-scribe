@@ -6,12 +6,12 @@ services:
       context: .
       dockerfile: api/Dockerfile
     ports:
-      - "8080:8080"
+      - "8081:8080"
     environment:
       - JAVA_OPTS=-Xmx512m -Xms256m
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - VIMEO_USERNAME=${VIMEO_USERNAME}
-      - VIMEO_PASSWORD=${VIMEO_PASSWORD}
+      - GEMINI_API_KEY=AIzaSyBu8-dzIKELqg2uCqSpHbT7UvqWlhYkXqA
+      - VIMEO_USERNAME=47f7cac57a56b5b6ec1f361894744f9dffd3090e
+      - VIMEO_PASSWORD=YIHQGOfNSmx7q5kyI7dKJOjmIDbuQNnml25hSJ6ixgkBVFsaTeHTfxv2R4ojNm4IoNYVvEGfhfr9lYSGHFPStIwHVB62O2RNTgbeZhMhbtp99GS2WSVb6OcpU2Ntq3cr
     restart: unless-stopped
     networks:
       - vimeo-scribe-network
@@ -20,11 +20,12 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
+      args:
+        - VITE_BACKEND_URL=http://localhost:8081
     ports:
       - "3000:80"
     environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - VITE_BACKEND_URL=${VITE_BACKEND_URL:-http://localhost:8081}
+      - GEMINI_API_KEY=AIzaSyBu8-dzIKELqg2uCqSpHbT7UvqWlhYkXqA
       - APP_URL=${APP_URL:-http://localhost:3000}
     networks:
       - vimeo-scribe-network
