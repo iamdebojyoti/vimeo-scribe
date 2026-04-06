@@ -159,7 +159,7 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Deploy to Render
-      uses: johnnybuilds/render-action@v1.0.0
+      uses: johnbeynon/render-deploy-action@v0.0.8
       with:
         service-id: ${{ secrets.RENDER_API_SERVICE_ID }}
         api-key: ${{ secrets.RENDER_API_KEY }}
@@ -186,7 +186,7 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Deploy to Render
-      uses: johnnybuilds/render-action@v1.0.0
+      uses: johnbeynon/render-deploy-action@v0.0.8
       with:
         service-id: ${{ secrets.RENDER_WEB_SERVICE_ID }}
         api-key: ${{ secrets.RENDER_API_KEY }}
@@ -255,21 +255,17 @@ jobs:
     steps:
     - name: Rollback API service
       if: needs.deploy-api.result == 'failure'
-      uses: johnnybuilds/render-action@v1.0.0
-      with:
-        service-id: ${{ secrets.RENDER_API_SERVICE_ID }}
-        api-key: ${{ secrets.RENDER_API_KEY }}
-        deploy: false
-        rollback: true
+      run: |
+        echo "⚠️  Manual rollback required for API service"
+        echo "Service ID: ${{ secrets.RENDER_API_SERVICE_ID }}"
+        echo "Please rollback manually in Render dashboard"
     
     - name: Rollback Web service
       if: needs.deploy-web.result == 'failure'
-      uses: johnnybuilds/render-action@v1.0.0
-      with:
-        service-id: ${{ secrets.RENDER_WEB_SERVICE_ID }}
-        api-key: ${{ secrets.RENDER_API_KEY }}
-        deploy: false
-        rollback: true
+      run: |
+        echo "⚠️  Manual rollback required for Web service"
+        echo "Service ID: ${{ secrets.RENDER_WEB_SERVICE_ID }}"
+        echo "Please rollback manually in Render dashboard"
     
     - name: Notify rollback
       run: |
