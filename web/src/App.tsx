@@ -4,7 +4,7 @@ import {
   Video, 
   FileText,
   Loader2,
-  AlertCircle, 
+  AlertCircle,
   Copy,
   ChevronRight,
   BrainCircuit,
@@ -16,6 +16,7 @@ import {
   Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import ReactMarkdown from 'react-markdown';
 import { cn } from './lib/utils';
 
 // Types
@@ -43,23 +44,11 @@ interface AIModel {
 }
 
 const AI_MODELS: AIModel[] = [
-  { 
-    id: 'gemini', 
-    name: 'Google Gemini', 
-    icon: <Sparkles className="w-4 h-4" />, 
-    description: 'Powerful multimodal AI for accurate transcription and summary.' 
-  },
-  { 
-    id: 'openai', 
-    name: 'OpenAI GPT-4', 
-    icon: <Zap className="w-4 h-4" />, 
-    description: 'Industry standard for text processing (Coming Soon).' 
-  },
-  { 
-    id: 'anthropic', 
-    name: 'Anthropic Claude', 
-    icon: <BrainCircuit className="w-4 h-4" />, 
-    description: 'Nuanced and safe language model (Coming Soon).' 
+  {
+    id: 'gemini',
+    name: 'Google Gemini',
+    icon: <Sparkles className="w-4 h-4" />,
+    description: 'Powerful multimodal AI for accurate transcription and summary.'
   }
 ];
 
@@ -148,17 +137,19 @@ export default function App() {
 
     try {
       const backendUrl = import.meta.env.VITE_BACKEND_URL;
-      
-      // Call the multiple summary endpoint
+
+      // Call the summarize endpoint with new format
       const response = await axios.post(`${backendUrl}/vimeo-scribe/v1/summarize`, {
         videoIds: validUrls,
         summarizePrompt: summarizePrompt,
-        model: selectedModel,
-        apiKey: apiKeys[selectedModel as keyof typeof apiKeys]
+        aiDetails: {
+          provider: selectedModel.toUpperCase(),
+          apiKey: apiKeys[selectedModel as keyof typeof apiKeys]
+        }
       });
 
       setResult(response.data);
-      
+
       // Save to history
       saveToHistory({
         id: Math.random().toString(36).substring(7),
@@ -193,9 +184,9 @@ export default function App() {
             <p className="text-[10px] uppercase tracking-widest opacity-50 font-mono mt-1">Multi-Video Transcription & Summary</p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-4">
-          <button 
+          <button
             onClick={() => setShowSettings(true)}
             className="flex items-center gap-2 px-4 py-2 bg-[#141414] text-[#E4E3E0] rounded-sm font-mono text-[10px] uppercase tracking-widest hover:bg-transparent hover:text-[#141414] border border-[#141414] transition-all"
           >
@@ -218,12 +209,12 @@ export default function App() {
               )} />
             </div>
             <p className="text-xs opacity-60 leading-relaxed">
-              {apiKeys.gemini 
-                ? "Your Gemini API key is configured and ready for use." 
+              {apiKeys.gemini
+                ? "Your Gemini API key is configured and ready for use."
                 : "No API key detected. Please configure your key in the BYOK section to enable processing."}
             </p>
             {!apiKeys.gemini && (
-              <button 
+              <button
                 onClick={() => setShowSettings(true)}
                 className="text-[10px] uppercase tracking-widest font-bold underline hover:no-underline"
               >
@@ -237,7 +228,7 @@ export default function App() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <label className="text-[11px] uppercase tracking-widest opacity-50 font-mono block">Vimeo Video URLs</label>
-                <button 
+                <button
                   type="button"
                   onClick={addUrlField}
                   className="flex items-center gap-1 text-[10px] uppercase tracking-widest font-bold hover:underline"
@@ -245,13 +236,13 @@ export default function App() {
                   <Plus className="w-3 h-3" /> Add URL
                 </button>
               </div>
-              
+
               <div className="space-y-3">
                 {vimeoUrls.map((url, index) => (
                   <div key={index} className="flex gap-2">
                     <div className="relative flex-1">
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={url}
                         onChange={(e) => updateUrlField(index, e.target.value)}
                         placeholder="https://vimeo.com/123456789"
@@ -260,7 +251,7 @@ export default function App() {
                       <Video className="absolute right-0 top-1/2 -translate-y-1/2 opacity-30 w-4 h-4" />
                     </div>
                     {vimeoUrls.length > 1 && (
-                      <button 
+                      <button
                         type="button"
                         onClick={() => removeUrlField(index)}
                         className="p-2 opacity-30 hover:opacity-100 hover:text-red-600 transition-all"
@@ -277,7 +268,7 @@ export default function App() {
             <div className="space-y-2">
               <label className="text-[11px] uppercase tracking-widest opacity-50 font-mono block">AI Intelligence</label>
               <div className="relative">
-                <select 
+                <select
                   value={selectedModel}
                   onChange={(e) => setSelectedModel(e.target.value)}
                   className="w-full bg-transparent border-b border-[#141414] py-3 focus:outline-none focus:border-b-2 transition-all font-mono text-sm appearance-none cursor-pointer"
@@ -295,7 +286,7 @@ export default function App() {
             {/* Custom Prompt */}
             <div className="space-y-2">
               <label className="text-[11px] uppercase tracking-widest opacity-50 font-mono block">Summarization Prompt</label>
-              <textarea 
+              <textarea
                 value={summarizePrompt}
                 onChange={(e) => setSummarizePrompt(e.target.value)}
                 rows={4}
@@ -308,7 +299,7 @@ export default function App() {
               </div>
             </div>
 
-            <button 
+            <button
               type="submit"
               disabled={isLoading || vimeoUrls.every(u => !u.trim())}
               className={cn(
@@ -338,7 +329,7 @@ export default function App() {
                 <h3 className="text-[11px] uppercase tracking-widest font-mono font-bold">Recent Scribes</h3>
               </div>
               {history.length > 0 && (
-                <button 
+                <button
                   onClick={clearHistory}
                   className="text-[9px] uppercase tracking-widest opacity-40 hover:opacity-100 hover:text-red-600 transition-all font-mono"
                 >
@@ -384,7 +375,7 @@ export default function App() {
         <div className="lg:col-span-7">
           <AnimatePresence mode="wait">
             {error && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
@@ -399,7 +390,7 @@ export default function App() {
             )}
 
             {result ? (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="space-y-12"
@@ -414,15 +405,15 @@ export default function App() {
                         <span>AI Engine: {AI_MODELS.find(m => m.id === selectedModel)?.name}</span>
                       </div>
                     </div>
-                    <button 
+                    <button
                       onClick={() => copyToClipboard(result.summary || '')}
                       className="p-3 hover:bg-[#141414] hover:text-[#E4E3E0] transition-colors border border-[#141414]"
                     >
                       <Copy className="w-5 h-5" />
                     </button>
                   </div>
-                  <div className="prose prose-sm max-w-none font-sans leading-relaxed text-xl whitespace-pre-wrap">
-                    {result.summary || 'No summary generated.'}
+                  <div className="prose prose-sm md:prose-base lg:prose-lg max-w-none font-sans leading-relaxed text-[#141414] prose-headings:font-serif prose-headings:italic prose-a:text-blue-600">
+                    <ReactMarkdown>{result.summary || 'No summary generated.'}</ReactMarkdown>
                   </div>
                 </div>
 

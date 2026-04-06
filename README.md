@@ -347,7 +347,6 @@ export JAVA_OPTS="-Xmx2g -Xms1g"
 export GEMINI_API_KEY="prod-key"
 export VIMEO_USERNAME="prod-user"
 export VIMEO_PASSWORD="prod-pass"
-export APP_URL="https://your-domain.com"
 export VITE_BACKEND_URL="https://api.your-domain.com"
 ```
 
