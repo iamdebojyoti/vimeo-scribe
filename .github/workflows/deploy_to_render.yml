@@ -168,10 +168,9 @@ jobs:
     - name: Verify API deployment
       run: |
         echo "Waiting for API service to be ready..."
-        sleep 30
+        sleep 60
         
-        # Health check (replace with your actual health endpoint)
-        curl -f ${{ secrets.RENDER_API_URL }}/health || exit 1
+        curl -f ${{ secrets.RENDER_API_URL }} || exit 1
         echo "✅ API deployed successfully"
 
   # Deploy Web to Render

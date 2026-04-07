@@ -5,7 +5,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.plugins.statuspages.StatusPages
-import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
@@ -20,15 +19,6 @@ fun Application.configureRouting() {
     routing {
         route("/vimeo-scribe") {
             videoGenerateRoute()
-        }
-        get("/health") {
-            call.respond(
-                mapOf(
-                    "status" to "UP",
-                    "timestamp" to System.currentTimeMillis(),
-                    "service" to "vimeo-scribe-api",
-                ),
-            )
         }
         get("/") {
             call.respondText("Hello World!")
