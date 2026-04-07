@@ -3,8 +3,8 @@
   <p><strong>AI-Powered Video Summarization Platform</strong></p>
   <p>Transform Vimeo videos into intelligent, concise summaries using Google Gemini AI</p>
   
-  [![Kotlin](https://img.shields.io/badge/Kotlin-2.x-blue.svg)](https://kotlinlang.org/)
-  [![Ktor](https://img.shields.io/badge/Ktor-Framework-green.svg)](https://ktor.io/)
+  [![Kotlin](https://img.shields.io/badge/Kotlin-2.3.0-blue.svg)](https://kotlinlang.org/)
+  [![Ktor](https://img.shields.io/badge/Ktor-3.4.0-green.svg)](https://ktor.io/)
   [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
   [![AI](https://img.shields.io/badge/AI-Gemini-purple.svg)](https://ai.google.dev/)
   [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -49,19 +49,23 @@ Vimeo Scribe is a cutting-edge **microservice platform** that automatically extr
 ### 🛠️ Tech Stack
 
 **Backend:**
-- **Runtime:** Kotlin 2.x on JVM 21
-- **Framework:** Ktor with Netty engine
-- **AI Engine:** Google Gemini API
-- **Dependency Injection:** Koin
+- **Runtime:** Kotlin 2.3.0 on JVM 21
+- **Framework:** Ktor 3.4.0 with Netty engine
+- **AI Engine:** Google Gemini API 1.40.0
+- **Dependency Injection:** Koin 4.1.0-Beta8
 - **Serialization:** kotlinx.serialization + Jackson
-- **Testing:** JUnit 5 + MockK
+- **Testing:** JUnit 5.10.2 + MockK 1.13.8
+- **Code Quality:** ktlint 12.1.1
 
 **Frontend:**
-- **Framework:** React with TypeScript
-- **Build Tool:** Vite
-- **Styling:** TailwindCSS
+- **Framework:** React 19.0.0 with TypeScript 5.8.2
+- **Build Tool:** Vite 6.2.0
+- **Styling:** TailwindCSS 4.1.14
 - **UI Components:** shadcn/ui
-- **Icons:** Lucide
+- **Icons:** Lucide React 0.546.0
+- **HTTP Client:** Axios 1.14.0
+- **Markdown:** react-markdown 10.1.0
+- **Animations:** Motion 12.38.0
 
 **Infrastructure:**
 - **Containerization:** Docker + Docker Compose
@@ -74,28 +78,49 @@ Vimeo Scribe is a cutting-edge **microservice platform** that automatically extr
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/v1/summarize` | Summarize a single video |
-| `POST` | `/v1/summarize/multiple` | Summarize multiple videos |
+| `POST` | `/vimeo-scribe/v1/summarize` | Summarize single or multiple videos |
+| `GET` | `/` | Health check endpoint |
 
 ### 💬 Request/Response Examples
 
-#### Single Video Summary
+#### Video Summary Request
+
+**Endpoint:** `POST /vimeo-scribe/v1/summarize`
 
 **Request:**
 ```json
-POST /v1/summarize
-Content-Type: application/json
-
 {
-  "videoId": "https://vimeo.com/123456789",
-  "summarizePrompt": "Summarize the key points in 3 bullet points"
+  "videoIds": ["https://vimeo.com/123456789"],
+  "summarizePrompt": "Summarize the key points in 3 bullet points",
+  "aiDetails": {
+    "provider": "GEMINI",
+    "apiKey": "your-gemini-api-key",
+    "additionalData": {
+      "model": "gemini-pro",
+      "temperature": "0.5"
+    }
+  }
 }
 ```
 
-**Response:**
+**Minimal Request:**
+```json
+{
+  "videoIds": ["https://vimeo.com/123456789"]
+}
+```
+
+**Response (Success):**
 ```json
 {
   "summary": "• First key point\n• Second key point\n• Third key point"
+}
+```
+
+**Response (Error):**
+```json
+{
+  "error": "Batch processing failed"
 }
 ```
 
@@ -103,15 +128,16 @@ Content-Type: application/json
 
 **Request:**
 ```json
-POST /v1/summarize/multiple
-Content-Type: application/json
-
 {
   "videoIds": [
     "https://vimeo.com/123456789",
     "https://vimeo.com/987654321"
   ],
-  "summarizePrompt": "Compare and contrast the main themes"
+  "summarizePrompt": "Compare and contrast the main themes",
+  "aiDetails": {
+    "provider": "GEMINI",
+    "apiKey": "your-gemini-api-key"
+  }
 }
 ```
 
@@ -119,6 +145,52 @@ Content-Type: application/json
 ```json
 {
   "summary": "Both videos discuss..."
+}
+```
+
+### 📋 Request Schema
+
+#### VideoSummaryRequest
+```json
+{
+  "videoIds": "string[]" (required),
+  "summarizePrompt": "string (optional)",
+  "aiDetails": {
+    "provider": "GEMINI" (required),
+    "apiKey": "string" (required),
+    "additionalData": "object<string, string> (optional)"
+  } (optional)
+}
+```
+
+#### VideoSummaryResponse
+```json
+{
+  "summary": "string | null"
+}
+```
+
+#### AIDetails
+```json
+{
+  "provider": "GEMINI",
+  "apiKey": "string",
+  "additionalData": {
+    "model": "gemini-pro",
+    "temperature": "0.5"
+  }
+}
+```
+
+### 🚨 Error Handling
+
+- **200 OK**: Request processed successfully
+- **500 Internal Server Error**: Processing failed with error details in response body
+
+**Error Response Format:**
+```json
+{
+  "error": "Error description message"
 }
 ```
 
@@ -136,9 +208,12 @@ export VIMEO_PASSWORD="your-vimeo-password"
 
 ### 📄 Configuration File
 
-Or configure directly in `src/main/resources/application.yaml`:
+Or configure directly in `api/src/main/resources/application.yaml`:
 
 ```yaml
+ktor:
+    deployment:
+        port: 8080
 gemini:
     api-key: ${GEMINI_API_KEY}
 vimeo:
@@ -171,14 +246,15 @@ export VIMEO_PASSWORD="your-vimeo-password"
 
 🎉 **Access your application:**
 - **Web Interface:** http://localhost:3000
-- **API Endpoint:** http://localhost:8080
+- **API Endpoint:** http://localhost:8081
 
 ### 🛠️ Manual Setup
 
 #### Prerequisites
 - JDK 21+
-- Node.js 18+
+- Node.js 20+
 - Gradle 8.x (or use wrapper)
+- Docker & Docker Compose
 
 #### Step 1: Backend Setup
 ```bash
@@ -200,9 +276,9 @@ npm run dev
 
 #### Step 3: Test the API
 ```bash
-curl -X POST http://localhost:8080/v1/summarize \
+curl -X POST http://localhost:8080/vimeo-scribe/v1/summarize \
   -H "Content-Type: application/json" \
-  -d '{"videoId": "https://vimeo.com/123456789"}'
+  -d '{"videoIds": ["https://vimeo.com/123456789"]}'
 ```
 
 ### 🐳 Docker Commands
@@ -212,6 +288,8 @@ curl -X POST http://localhost:8080/v1/summarize \
 | Build & Run | `./scripts/start.sh` | Full build and start |
 | Quick Start | `./scripts/quick-start.sh` | Fast development start |
 | Background | `./scripts/start.sh -d` | Run in detached mode |
+| Rebuild | `./scripts/start.sh --rebuild` | Force rebuild images |
+| Skip Build | `./scripts/start.sh --skip-build` | Use existing builds |
 | Stop Services | `./scripts/stop.sh` | Stop all containers |
 | Restart | `./scripts/restart.sh` | Rebuild and restart |
 
@@ -221,16 +299,26 @@ curl -X POST http://localhost:8080/v1/summarize \
 |------|---------|-------------|
 | Run tests | `./gradlew test` | Execute test suite |
 | Build | `./gradlew build` | Compile and package |
-| Fat JAR | `./gradlew buildFatJar` | Build standalone executable |
-| Docker image | `./gradlew buildImage` | Create container image |
+| ktlint check | `./gradlew ktlintCheck` | Check code formatting |
+| ktlint format | `./gradlew ktlintFormat` | Format code |
 | Run local | `./gradlew run` | Start development server |
 
 ### ✅ Success Indicators
 
 On successful startup, you'll see:
 ```
-2024-12-04 14:32:45.584 [main] INFO  Application - Application started in 0.303 seconds.
-2024-12-04 14:32:45.682 [main] INFO  Application - Responding at http://0.0.0.0:8080
+2025-04-07 14:32:45.584 [main] INFO  Application - Application started in 0.303 seconds.
+2025-04-07 14:32:45.682 [main] INFO  Application - Responding at http://0.0.0.0:8080
+```
+
+**Docker Compose Output:**
+```
+[INFO] Starting Vimeo Scribe build and deployment process...
+[SUCCESS] API module built successfully
+[SUCCESS] Web module built successfully
+[INFO] Starting services...
+vimeo-scribe-api-1  | [INFO] Application started in 0.303 seconds.
+vimeo-scribe-web-1   | [INFO] Server running on port 80
 ```
 
 ## 📁 Project Structure
@@ -283,6 +371,7 @@ vimeo-scribe/
 └── 📁 .github/                     # CI/CD workflows
     └── 📁 workflows/
         ├── 📄 ci.yml                    # Continuous integration
+        ├── 📄 deploy_to_render.yml      # Render deployment
         └── 📄 format.yml                # Code formatting
 ```
 
@@ -328,7 +417,7 @@ docker-compose logs -f web
 
 ### 🚀 Production Deployment
 
-#### Docker Deployment
+### Docker Deployment
 ```bash
 # Build production images
 ./scripts/start.sh --rebuild
@@ -339,6 +428,22 @@ docker-compose -f docker-compose.yml up -d
 # Scale services
 docker-compose up -d --scale api=3
 ```
+
+### Render Cloud Deployment
+The project includes automated deployment to Render via GitHub Actions:
+
+1. **Manual Deployment**: Use the "Deploy to Render" workflow in GitHub Actions
+2. **Automatic Deployment**: Triggered on push to main branch
+3. **Services Deployed**:
+   - API Service: Containerized Kotlin backend
+   - Web Service: Static React frontend
+
+**Required Render Secrets**:
+- `RENDER_API_SERVICE_ID`: API service identifier
+- `RENDER_WEB_SERVICE_ID`: Web service identifier  
+- `RENDER_API_KEY`: Render API key
+- `RENDER_API_URL`: Deployed API endpoint
+- `RENDER_WEB_URL`: Deployed web endpoint
 
 #### Environment Configuration
 ```bash

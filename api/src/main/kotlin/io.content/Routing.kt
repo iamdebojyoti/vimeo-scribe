@@ -21,7 +21,7 @@ fun Application.configureRouting() {
             videoGenerateRoute()
         }
         get("/") {
-            call.respondText("Hello World!")
+            call.respondText("Application is UP")
         }
     }
 }
