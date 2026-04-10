@@ -138,7 +138,7 @@ if [ "$SKIP_BUILD" = false ]; then
     if [ -f "./gradlew" ]; then
         cd api
         chmod +x ../gradlew
-        if ../gradlew clean build -x test; then
+        if ../gradlew clean build; then
             print_success "API module built successfully"
         else
             print_error "Failed to build API module"

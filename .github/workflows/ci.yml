@@ -138,9 +138,9 @@ jobs:
       working-directory: ./web
       run: npm ci
     
-    - name: Run web tests (if available)
+    - name: Run web tests
       working-directory: ./web
-      run: npm run test || echo "No test script found - skipping"
+      run: npm run test:run
 
   build-api:
     name: Build API
