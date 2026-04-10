@@ -94,11 +94,7 @@ Vimeo Scribe is a cutting-edge **microservice platform** that automatically extr
   "summarizePrompt": "Summarize the key points in 3 bullet points",
   "aiDetails": {
     "provider": "GEMINI",
-    "apiKey": "your-gemini-api-key",
-    "additionalData": {
-      "model": "gemini-pro",
-      "temperature": "0.5"
-    }
+    "apiKey": "your-gemini-api-key"
   }
 }
 ```
@@ -204,6 +200,7 @@ Create environment variables for external service credentials:
 export GEMINI_API_KEY="your-gemini-api-key"
 export VIMEO_USERNAME="your-vimeo-username"
 export VIMEO_PASSWORD="your-vimeo-password"
+export VITE_BACKEND_URL="your-backend-url"
 ```
 
 ### 📄 Configuration File
@@ -239,6 +236,7 @@ chmod +x scripts/*.sh
 export GEMINI_API_KEY="your-gemini-api-key"
 export VIMEO_USERNAME="your-vimeo-username"
 export VIMEO_PASSWORD="your-vimeo-password"
+export VITE_BACKEND_URL="your-backend-url"
 
 # Start everything (builds and runs both API and Web UI)
 ./scripts/start.sh
@@ -269,6 +267,8 @@ export VIMEO_PASSWORD="..."
 
 #### Step 2: Frontend Setup
 ```bash
+export VITE_BACKEND_URL="your-backend-url"
+
 cd web
 npm install
 npm run dev
@@ -321,60 +321,6 @@ vimeo-scribe-api-1  | [INFO] Application started in 0.303 seconds.
 vimeo-scribe-web-1   | [INFO] Server running on port 80
 ```
 
-## 📁 Project Structure
-
-```
-vimeo-scribe/
-├── 📄 README.md                   # This file
-├── 🐳 docker-compose.yml          # Multi-service orchestration
-├── 📜 build.gradle.kts             # Root build configuration
-├── 📜 settings.gradle.kts          # Gradle settings
-├── 📁 api/                         # Backend Kotlin service
-│   ├── 📁 src/
-│   │   ├── 📁 main/kotlin/io/content/
-│   │   │   ├── 📄 Application.kt          # Ktor app entry point
-│   │   │   ├── 📄 Dependency.kt           # Koin DI configuration
-│   │   │   ├── 📄 Routing.kt              # Route registration
-│   │   │   ├── 📄 Serialization.kt        # JSON serialization setup
-│   │   │   ├── 📄 Monitoring.kt           # Logging & monitoring
-│   │   │   ├── 📁 domain/                 # Business logic & ports
-│   │   │   │   ├── 📁 usecase/            # Use case implementations
-│   │   │   │   └── 📁 port/               # Interface definitions
-│   │   │   ├── 📁 infra/                  # Infrastructure layer
-│   │   │   │   ├── 📁 adapter/            # External service adapters (Gemini, Vimeo)
-│   │   │   │   ├── 📁 config/             # Configuration classes
-│   │   │   │   ├── 📁 extractor/          # Vimeo ID extraction
-│   │   │   │   ├── 📁 http/               # HTTP clients
-│   │   │   │   └── 📁 model/              # Data models
-│   │   │   └── 📁 presentation/           # API layer
-│   │   │       ├── 📁 dto/                # Request/response DTOs
-│   │   │       └── 📁 route/              # Route handlers
-│   │   └── 📁 test/kotlin/                # Test suites
-│   ├── 📄 Dockerfile                   # Backend container definition
-│   └── 📄 build.gradle.kts             # Backend build config
-├── 📁 web/                         # Frontend React app
-│   ├── 📁 src/
-│   │   ├── 📁 lib/                    # Utility functions
-│   │   ├── 📄 App.tsx                 # Main React component
-│   │   ├── 📄 main.tsx                # App entry point
-│   │   └── 📄 index.css               # Global styles
-│   ├── 📄 package.json               # Node.js dependencies
-│   ├── 📄 vite.config.ts              # Vite configuration
-│   ├── 📄 tailwind.config.js          # TailwindCSS config
-│   └── 📄 Dockerfile                  # Frontend container definition
-├── 📁 scripts/                     # Deployment and utility scripts
-│   ├── 📄 start.sh                   # Main deployment script
-│   ├── 📄 quick-start.sh             # Quick development start
-│   ├── 📄 stop.sh                    # Stop all services
-│   ├── 📄 restart.sh                 # Restart services
-│   └── 📄 README.md                  # Script documentation
-└── 📁 .github/                     # CI/CD workflows
-    └── 📁 workflows/
-        ├── 📄 ci.yml                    # Continuous integration
-        ├── 📄 deploy_to_render.yml      # Render deployment
-        └── 📄 format.yml                # Code formatting
-```
-
 ## 🧪 Development
 
 ### 🔬 Testing
@@ -385,15 +331,11 @@ vimeo-scribe/
 
 # Run frontend tests
 cd web && npm test
-
-# Run tests with coverage
-./gradlew test jacocoTestReport
 ```
 
 Tests use:
 - **Backend:** JUnit 5 with MockK for mocking
 - **Frontend:** Vitest with React Testing Library
-- **Coverage:** JaCoCo for backend, c8 for frontend
 
 ### 🐛 Debugging
 
@@ -433,8 +375,7 @@ docker-compose up -d --scale api=3
 The project includes automated deployment to Render via GitHub Actions:
 
 1. **Manual Deployment**: Use the "Deploy to Render" workflow in GitHub Actions
-2. **Automatic Deployment**: Triggered on push to main branch
-3. **Services Deployed**:
+2**Services Deployed**:
    - API Service: Containerized Kotlin backend
    - Web Service: Static React frontend
 
@@ -453,29 +394,6 @@ export GEMINI_API_KEY="prod-key"
 export VIMEO_USERNAME="prod-user"
 export VIMEO_PASSWORD="prod-pass"
 export VITE_BACKEND_URL="https://api.your-domain.com"
-```
-
-## 🔧 Advanced Configuration
-
-### Custom Prompts
-Create custom summarization prompts for different use cases:
-
-```json
-{
-  "summarizePrompt": "Create a technical summary with code examples",
-  "summarizePrompt": "Extract key action items and deadlines",
-  "summarizePrompt": "Summarize for a non-technical audience"
-}
-```
-
-### Performance Tuning
-```yaml
-# application.yaml
-ktor:
-  deployment:
-    callGroupSize: 4
-    connectionGroupSize: 8
-    workerGroupSize: 4
 ```
 
 ## 🤝 Contributing
